@@ -106,7 +106,7 @@
     function surnameInitialLower(surnameCn) {
       const py = window.pinyinPro.pinyin(surnameCn, { toneType: "none", type: "array" });
       if (!py || !py.length) return "";
-      return py[0][0].toLowerCase();  // ★ 只取首字母
+      return py[0][0].toLowerCase(); 
     }
 
     function gen() {
