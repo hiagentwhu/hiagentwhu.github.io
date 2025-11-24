@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>账号密码生成器</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, "PingFang SC", "Microsoft Yahei", sans-serif;
+      background: #0b1020;
+      color: #e6e9f2;
+    }
+    .wrap {
+      max-width: 560px;
+      margin: 8vh auto;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(8px);
+    }
+    h1 { font-size: 22px; margin: 0 0 16px; }
+    label { display:block; font-size:14px; margin:12px 0 6px; opacity:0.9; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.25);
+      color: #fff;
+      outline: none;
+    }
+    input:focus { border-color: #7aa2ff; box-shadow: 0 0 0 3px rgba(122,162,255,0.2); }
+
+    .btns { display:flex; gap:10px; margin-top:16px; }
+    button {
+      flex:1;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #7aa2ff;
+      color: #081126;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: rgba(255,255,255,0.12);
+      color: #e6e9f2;
+      font-weight: 500;
+    }
+
+    .out {
+      margin-top:18px;
+      padding: 14px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 12px;
+      border: 1px dashed rgba(255,255,255,0.18);
+      line-height: 1.8;
+      font-size: 15px;
+      word-break: break-all;
+    }
+    .kv { display:flex; justify-content:space-between; gap:8px; }
+    .kv b { color:#c4d3ff; }
+
+    .hint { font-size: 12px; opacity:0.7; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>账号/初始密码自动生成</h1>
+
+    <label>姓名（中文）</label>
+    <input id="name" placeholder="例如：张三" />
+
+    <label>学号（至少 8 位）</label>
+    <input id="sid" placeholder="例如：2023123456789" />
+
+    <div class="btns">
+      <button id="gen">生成</button>
+      <button id="copy" class="secondary">复制结果</button>
+      <button id="clear" class="secondary">清空</button>
+      <div id="out" class="out" style="display:none;"></div>
+    </div>
+    
+  </div>
+
+  <!-- 拼音库 -->
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.20.4/dist/index.js"></script>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function getSurname(name) {
+      name = (name || "").trim();
+      if (!name) return "";
+      const dsList = ["欧阳","司马","诸葛","上官","夏侯","东方","皇甫","尉迟","公羊","赫连","澹台","宗政","濮阳","公冶","太史","申屠","公孙","慕容","仲孙","钟离","长孙","宇文","司徒","鲜于","闾丘","子车","亓官","司空","巫马","公西","颛孙","壤驷","公良","漆雕","乐正","宰父","谷梁","拓跋","夹谷","轩辕","令狐","段干","百里","呼延","东郭","南宫","羊舌","微生","梁丘","左丘","东门","西门"];
+      for (const ds of dsList) {
+        if (name.startsWith(ds)) return ds;
+      }
+      return name[0];
+    }
+
+    function surnameInitialLower(surnameCn) {
+      const py = window.pinyinPro.pinyin(surnameCn, { toneType: "none", type: "array" });
+      if (!py || !py.length) return "";
+      return py[0][0].toLowerCase();  // ★ 只取首字母
+    }
+
+    function gen() {
+      const name = $("name").value.trim();
+      const sid = $("sid").value.trim();
+
+      if (!name) return alert("请先输入姓名");
+      if (!sid || sid.length < 8 || !/^\d+$/.test(sid))
+        return alert("学号需为纯数字且至少 8 位");
+
+      const surnameCn = getSurname(name);
+      const sInitialLower = surnameInitialLower(surnameCn);
+      if (!sInitialLower) return alert("姓氏拼音转换失败");
+
+      const account = sInitialLower + sid;
+
+      const last8 = sid.slice(-8);
+      const password = `${sInitialLower.toUpperCase()}${sInitialLower}${last8}!`;
+
+      $("out").style.display = "block";
+      $("out").innerHTML = `
+        <div class="kv"><span>姓名</span><b>${name}</b></div>
+        <div class="kv"><span>姓氏</span><b>${surnameCn}（拼音首字母：${sInitialLower}）</b></div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08); margin:10px 0;">
+        <div class="kv"><span>生成账号</span><b>${account}</b></div>
+        <div class="kv"><span>初始密码</span><b>${password}</b></div>
+      `;
+      window.__lastResult = { name, sid, account, password };
+    }
+
+    function copy() {
+      const r = window.__lastResult;
+      if (!r) return alert("还没有生成结果");
+      const txt = `姓名: ${r.name}\n学号: ${r.sid}\n账号: ${r.account}\n初始密码: ${r.password}\n`;
+      navigator.clipboard.writeText(txt).then(
+        () => alert("已复制"),
+        () => alert("复制失败")
+      );
+    }
+
+    function clearAll() {
+      $("name").value = "";
+      $("sid").value = "";
+      $("out").style.display = "none";
+      $("out").innerHTML = "";
+      window.__lastResult = null;
+    }
+
+    $("gen").addEventListener("click", gen);
+    $("copy").addEventListener("click", copy);
+    $("clear").addEventListener("click", clearAll);
+  </script>
+</body>
+</html>
